@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">AzureWork</string>
+    <string name="preview_button_text">Take Photo</string>
+    <string name="upload_button_text">Upload</string>
+</resources>
