@@ -1,72 +1,45 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp"
     tools:context=".MainActivity">
 
-    <ImageView
-        android:id="@+id/imageView"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toTopOf="@+id/file_name"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:srcCompat="@tools:sample/avatars" />
-
     <TextView
-        android:id="@+id/file_name"
+        android:id="@+id/fileName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="18dp"
-        android:text="TextView"
-        app:layout_constraintBottom_toTopOf="@+id/button_file"
-        app:layout_constraintStart_toStartOf="@+id/button_file"
-        app:layout_constraintTop_toBottomOf="@+id/imageView" />
+        android:text="ygasdysyudajgasjsag"/>
+
+    <Button
+        android:id="@+id/download"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Download Folder" />
 
 
     <Button
-        android:id="@+id/button_upload"
-        android:layout_width="wrap_content"
+        android:id="@+id/pic"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginEnd="7dp"
-        android:text="Upload"
-        app:layout_constraintBottom_toTopOf="@+id/button_download"
-        app:layout_constraintEnd_toEndOf="@+id/button_download"
-        app:layout_constraintTop_toBottomOf="@+id/button_image" />
+        android:text="Pictures Folder" />
 
     <Button
-        android:id="@+id/button_download"
-        android:layout_width="wrap_content"
+        android:id="@+id/details"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Download"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/button_upload" />
-
-    <Button
-        android:id="@+id/button_image"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="3dp"
-        android:text="Image"
-        app:layout_constraintBottom_toTopOf="@+id/button_upload"
-        app:layout_constraintStart_toStartOf="@+id/button_file"
-        app:layout_constraintTop_toBottomOf="@+id/button_file" />
-
-    <Button
-        android:id="@+id/button_file"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="file"
-        app:layout_constraintBottom_toTopOf="@+id/button_image"
-        app:layout_constraintEnd_toEndOf="@+id/imageView"
-        app:layout_constraintStart_toStartOf="@+id/imageView"
-        app:layout_constraintTop_toBottomOf="@+id/file_name" />
+        android:text="Uploaded files" />
 
 
+    <ImageView
+        android:id="@+id/IVPreviewImage"
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
