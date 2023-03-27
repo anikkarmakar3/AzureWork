@@ -11,7 +11,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.os.Environment
-import android.os.Parcelable
 import android.provider.OpenableColumns
 import android.util.Log
 import android.view.LayoutInflater
@@ -27,6 +26,7 @@ import com.microsoft.azure.storage.CloudStorageAccount
 import com.microsoft.azure.storage.blob.CloudBlob
 import com.microsoft.azure.storage.blob.CloudBlobClient
 import com.microsoft.azure.storage.blob.CloudBlobContainer
+import com.microsoft.azure.storage.blob.CloudBlockBlob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -387,30 +387,21 @@ class MainActivity : AppCompatActivity() {
         }
         return blobArray
     }
-    fun downloadF(){
+    fun downloadF(getBlobName:String){
         CoroutineScope(Dispatchers.IO).launch {
-            val account = CloudStorageAccount.parse(connectionString)
+            val account = CloudStorageAccount.parse(this@MainActivity.connectionString)
             val blobClient: CloudBlobClient = account.createCloudBlobClient()
-
-// Retrieve the file from Azure Storage
-
-// Retrieve the file from Azure Storage
             val container: CloudBlobContainer = blobClient.getContainerReference("arc-file-container")
-            for(blobItem in container.listBlobs().iterator()){
-                if (blobItem is CloudBlob){
-                    val blob = blobItem
-                }
-            }
-            /*val blob: CloudBlockBlob = container.getBlockBlobReference("Arec.jpg")
+            val blob: CloudBlockBlob = container.getBlockBlobReference(getBlobName)
             if(blob.exists()){
-                blob.download(FileOutputStream(File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", "Area 6c.jpg")))
+                /*blob.download(FileOutputStream(File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", getBlobName)))*/
             }
             else{
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(applicationContext,"This file is not exist",Toast.LENGTH_LONG).show()
-                }
-            }*/
+
+            }
         }
 
     }
+
+
 }
