@@ -9,8 +9,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import okhttp3.HttpUrl.Companion.toHttpUrl
 
 class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerView.Adapter<MyViewHolder>() {
     private var mainActivityObject= MainActivity()
@@ -41,7 +43,8 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
                 /*mainActivityObject.downloadF(blobItem.blobName.toString())*/
                 /*mainActivityObject2.downloadWithprogressBar(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
                 /*mainActivityObject2.downloadIntoMultipart(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
-                mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toHttpUrl().toUrl(),blobItem.blobName.toString(),1000)
+
+                mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toString(),blobItem.blobName.toString(),1000)
                 Toast.makeText(context,"success fully download ${blobItem.blobName}",Toast.LENGTH_LONG).show()
             }catch (e:Exception){
                 e.printStackTrace()
