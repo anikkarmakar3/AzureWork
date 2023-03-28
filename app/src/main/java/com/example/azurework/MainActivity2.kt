@@ -1,11 +1,25 @@
 package com.example.azurework
 
 import android.app.ProgressDialog
+import android.net.Uri
 import android.os.Bundle
-import android.view.View
+import android.os.Environment
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.net.toUri
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.microsoft.azure.storage.CloudStorageAccount
+import com.microsoft.azure.storage.blob.CloudBlob
+import com.microsoft.azure.storage.blob.CloudBlockBlob
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
+import java.io.OutputStream
+import java.net.URL
 
 
 class MainActivity2 : AppCompatActivity() {
@@ -31,8 +45,61 @@ class MainActivity2 : AppCompatActivity() {
 
     }
 
-    fun downloadWithprogressBar(getBlobName:String,fileSize:Long){
-        try {
+    fun downloadIntoMultipart(getBlobName:String,fileSize:Long){
+        CoroutineScope(Dispatchers.IO).launch {
+            val storageConnectionString =
+                "DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net"
+            val account = CloudStorageAccount.parse(storageConnectionString)
+            val blobClient = account.createCloudBlobClient()
+            val container = blobClient.getContainerReference("arc-file-container")
+            val blob: CloudBlockBlob  = container.getBlockBlobReference(getBlobName)
+            val outputStream: OutputStream = FileOutputStream(File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", getBlobName))
+            blob.downloadRange(0,fileSize,outputStream,null,null,null)
+            Log.d("length1","the length is ${fileSize}")
+            outputStream.close();
+        }
+
+    }
+
+
+    fun downloadBlobFile(url: URL, getBlobName:String, chunkSize: Int) {
+        CoroutineScope(Dispatchers.IO).launch{
+            try{
+                val storageConnectionString =
+                    "DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net"
+                val account = CloudStorageAccount.parse(storageConnectionString)
+                val blobClient = account.createCloudBlobClient()
+                val container = blobClient.getContainerReference("arc-file-container")
+                val blob: CloudBlockBlob  = container.getBlockBlobReference(getBlobName)
+
+                var inputStream: InputStream = blob.openInputStream()
+
+                val file = File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", getBlobName)
+                val outputStream = FileOutputStream(file)
+
+                val buffer = ByteArray(chunkSize)
+                var bytesRead: Int
+                var count=0
+                do {
+                    bytesRead = inputStream.read(buffer)
+                    if (bytesRead > 0) {
+                        outputStream.write(buffer, 0, bytesRead)
+                    }
+                    count++
+                } while (bytesRead != -1)
+                Log.d("data","the read data $bytesRead and count is $count")
+                outputStream.close()
+                inputStream.close()
+            }catch (e:Exception){
+                e.printStackTrace()
+            }
+
+        }
+
+    }
+
+    fun downloadWithprogressBar(getBlobName:String,fileSize:Long) {
+        /*try {
             progressBar = ProgressDialog(this@MainActivity2)
             progressBar.setCancelable(true)
             progressBar.setMessage("File downloading ...")
@@ -50,7 +117,7 @@ class MainActivity2 : AppCompatActivity() {
             val progressBarStatus = doOperation(fileSize.toInt())
 
             try {
-                /*Thread.sleep(1000)*/
+                *//*Thread.sleep(1000)*//*
                 progressBar.setProgress(progressBarStatus);
             } catch (e: InterruptedException) {
                 e.printStackTrace()
@@ -66,24 +133,10 @@ class MainActivity2 : AppCompatActivity() {
                 // close the progress bar dialog
                 progressBar.dismiss();
             }
-        }
+        }*/
+
+
     }
-
-
-
-
-        /*val storageAccount = CloudStorageAccount.parse("DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net")
-
-        val blobClient = storageAccount.createCloudBlobClient()
-
-        val container = blobClient.getContainerReference("arc-file-container")
-
-        val blob = container.getBlockBlobReference(getBlobName)
-
-        val localFile = File(Environment.getExternalStorageDirectory().absoluteFile.path )*/
-        /*blob.downloadToFile(localFile.absolutePath,null, BlobRequestOptions(),)
-
-        progressBar.setVisibility(View.GONE)*/
 
     fun doOperation(fileSize:Int):Int{
         while (fileSize <= 10000) {

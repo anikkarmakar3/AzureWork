@@ -375,7 +375,7 @@ class MainActivity : AppCompatActivity() {
                     if (blobItem is CloudBlob) {
                         // Download the item and save it to a file with the same name.
                         val blob = blobItem
-                        val blobData=FileModel(blob.name,blob.properties.length.toInt())
+                        val blobData=FileModel(blob.name,blob.properties.length.toInt(),blob.uri.toString())
                         blobArray.add(blobData)
                         /*blob.download(FileOutputStream(blob.name))*/
                     }
