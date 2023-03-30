@@ -15,6 +15,7 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -30,6 +31,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer
 import com.microsoft.azure.storage.blob.CloudBlockBlob
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.io.*
 import java.util.*
@@ -235,7 +237,14 @@ class MainActivity : AppCompatActivity() {
                             arraylist.addAll(listOf(displayName.toString()))
                             binding.fileName.visibility = View.VISIBLE
                             binding.fileName.text = displayName
-                           uploadFile(inputStream, displayName.toString())
+                           /*uploadFile(inputStream, displayName.toString())*/
+                            CoroutineScope(Dispatchers.IO).launch {
+                                async { uploadFileIntoMultipart(inputStream, displayName.toString()) }.await()
+                                CoroutineScope(Dispatchers.Main).launch {
+                                    Log.d("status","Succesfully uploaded")
+                                }
+                            }
+
                             /*uploadMultipartFile(inputStream, displayName.toString(),myFile.length())*/
                         }
                     } else {
@@ -407,30 +416,40 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    fun uploadFileIntoMultipart(takeFile: InputStream?, blobName: String){
-        val storageAccount = CloudStorageAccount.parse(connectionString)
-        val blobClient = storageAccount.createCloudBlobClient()
-        val container = blobClient.getContainerReference("arc-file-container")
-        val blob:CloudBlockBlob= container.getBlockBlobReference(blobName)
-        val blockSize = 4 * 1024 * 1024 // 4 MB
-        /*val file = File("<your_file_path>")*/
+    suspend fun uploadFileIntoMultipart(takeFile: InputStream?, blobName: String){
+        try {
+            val storageAccount = CloudStorageAccount.parse(connectionString)
+            val blobClient = storageAccount.createCloudBlobClient()
+            val container = blobClient.getContainerReference("arc-file-container")
+            val blob:CloudBlockBlob= container.getBlockBlobReference(blobName)
+            val blockSize = 4 * 1024 * 1024 // 4 MB
+            /*val file = File("<your_file_path>")*/
 
-        var blockIds = mutableListOf<BlockEntry>()
-        var blockId = 1
-        var bytesRead = 0
-        val buffer = ByteArray(blockSize)
-        while (bytesRead != -1) {
-            bytesRead = takeFile!!.read(buffer)
-            if (bytesRead != -1) {
-                val blockName = Base64.getEncoder().encodeToString("block-$blockId".toByteArray())
-                val block = blob
-                block.upload(ByteArrayInputStream(buffer, 0, bytesRead), bytesRead.toLong())
-                blockIds.add(blockName.length)
-                blockId++
+            var blockIds = mutableListOf<String>()
+            var blockId = 1
+            var bytesRead = 0
+            val buffer = ByteArray(blockSize)
+            while (bytesRead != -1) {
+                bytesRead = takeFile!!.read(buffer)
+                if (bytesRead != -1) {
+                    val takeblockId = Base64.getEncoder().encodeToString("block-$blockId".toByteArray())
+
+                    /*val blockName = Base64.getEncoder().encodeToString("block-$blockId".toByteArray())*/
+                    /*val block = blob
+                    block.upload(ByteArrayInputStream(buffer, 0, bytesRead), bytesRead.toLong())*/
+                    blob.uploadBlock(takeblockId,ByteArrayInputStream(buffer, 0, bytesRead),bytesRead.toLong())
+                    blockIds.add(takeblockId)
+                    blockId++
+                }
+
             }
-
+        }catch (e:Exception){
+            e.printStackTrace()
         }
-        blob.commitBlockList(blockIds)
+
+        /*val blobs = container.getBlockBlobReference("myblob")
+        blobs.commitBlockList(blockIds)*/
+
     }
 
 
