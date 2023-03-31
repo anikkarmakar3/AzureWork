@@ -7,12 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.net.toUri
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.*
 
 class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerView.Adapter<MyViewHolder>() {
     private var mainActivityObject= MainActivity()
@@ -35,7 +31,7 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
         val blobItem = items[position]
-        holder.blobItemView.text = blobItem.blobName
+        holder.blobItemView.text = blobItem.blobName + "   " + blobItem.blobSize + "Byte"
 
         holder.blobItemView.setOnClickListener {
 
@@ -43,9 +39,15 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
                 /*mainActivityObject.downloadF(blobItem.blobName.toString())*/
                 /*mainActivityObject2.downloadWithprogressBar(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
                 /*mainActivityObject2.downloadIntoMultipart(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
+                GlobalScope.launch {
+                    /*withContext(Dispatchers.IO) { mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toString(),blobItem.blobName.toString(),1000000) }*/
+                    async { mainActivityObject2.downloadFile(blobItem.blobName.toString(),blobItem.blobSize,1048576,context) }
+                    CoroutineScope(Dispatchers.Main).launch {
+                        Toast.makeText(context,"success fully download ${blobItem.blobName}",Toast.LENGTH_LONG).show()
+                    }
 
-                mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toString(),blobItem.blobName.toString(),1000)
-                Toast.makeText(context,"success fully download ${blobItem.blobName}",Toast.LENGTH_LONG).show()
+                }
+
             }catch (e:Exception){
                 e.printStackTrace()
                 Toast.makeText(context,"download failed ${blobItem.blobName}",Toast.LENGTH_LONG).show()

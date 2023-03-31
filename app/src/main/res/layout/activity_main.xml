@@ -21,11 +21,11 @@
         android:text="Download Folder" />
 
 
-    <Button
+    <!--<Button
         android:id="@+id/pic"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Pictures Folder" />
+        android:text="Pictures Folder" />-->
 
     <Button
         android:id="@+id/details"

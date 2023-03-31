@@ -31,6 +31,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.*
+import java.util.concurrent.Executors
 
 
 class MainActivity : AppCompatActivity() {
@@ -55,9 +56,9 @@ class MainActivity : AppCompatActivity() {
         binding.fileName.visibility = View.GONE
 
 
-        binding.pic.setOnClickListener {
+        /*binding.pic.setOnClickListener {
             imageChooser()
-        }
+        }*/
 
         binding.details.setOnClickListener {
 //            getAllUploadedFile()
@@ -145,8 +146,6 @@ class MainActivity : AppCompatActivity() {
                             val bitmap = BitmapFactory.decodeStream(stream)
                             stream!!.close()
                             binding.IVPreviewImage.setImageBitmap(bitmap)
-                            //picNameText.setText("Selected: en"
-                            //  + getStringNameFromRealPath(fileName));
                             val stream1 = ByteArrayOutputStream()
                             bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream1)
                             val imageInByte = stream1.toByteArray()
@@ -246,6 +245,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
+
     fun uploadFile(takeFile: InputStream?, blobName: String) {
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -260,6 +261,48 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+    /*fun uploadFileIntoChunk(){
+
+        *//*val container = CloudBlobContainer(connectionString, "arc-file-container")*//*
+        val account = CloudStorageAccount.parse(this@MainActivity.connectionString)
+        val blobClient: CloudBlobClient = account.createCloudBlobClient()
+        val container: CloudBlobContainer = blobClient.getContainerReference("arc-file-container")
+// Define the file to be uploaded
+        val file = File("/path/to/file")
+
+// Define the chunk size for each upload
+        val chunkSize = 1024
+
+// Define an Executor to manage the upload threads
+        val executor = Executors.newFixedThreadPool(4)
+
+        // Define a function to upload a single chunk
+        fun uploadChunk(blockBlob: CloudBlockBlob, fileStream: FileInputStream, offset: Long, length: Int) {
+            val buffer = ByteArray(length)
+            fileStream.read(buffer, offset.toInt(), length)
+            blockBlob.uploadFromByteArray(buffer, offset.toInt(), length)
+        }
+
+        // Define a function to upload the file in chunks
+        fun uploadFileInChunks() {
+            val blockBlob = container.getBlockBlobReference(file.name)
+            val fileStream = FileInputStream(file)
+            val fileSize = file.length()
+            var offset = 0L
+            while (offset < fileSize) {
+                val length = Math.min(chunkSize, fileSize - offset).toInt()
+                executor.execute {
+                    uploadChunk(blockBlob, fileStream, offset, length)
+                }
+                offset += chunkSize.toLong()
+            }
+            executor.shutdown()
+        }
+
+// Call the uploadFileInChunks function to start the upload
+        uploadFileInChunks()
+    }
+*/
 
     fun uploadMultipartFile(takeFile: InputStream?, blobName: String,length:Long) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -393,12 +436,8 @@ class MainActivity : AppCompatActivity() {
             val blobClient: CloudBlobClient = account.createCloudBlobClient()
             val container: CloudBlobContainer = blobClient.getContainerReference("arc-file-container")
             val blob: CloudBlockBlob = container.getBlockBlobReference(getBlobName)
-            if(blob.exists()){
-                /*blob.download(FileOutputStream(File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", getBlobName)))*/
-            }
-            else{
+            blob.download(FileOutputStream(File(Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download", getBlobName)))
 
-            }
         }
 
     }
