@@ -41,7 +41,7 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
                 /*mainActivityObject2.downloadIntoMultipart(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
                 GlobalScope.launch {
                     /*withContext(Dispatchers.IO) { mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toString(),blobItem.blobName.toString(),1000000) }*/
-                    async { mainActivityObject2.downloadFile(blobItem.blobName.toString(),blobItem.blobSize,1048576,context) }
+                    async { mainActivityObject2.downloadFile(blobItem.blobName.toString(),blobItem.blobSize,1000*1000,context) }.await()
                     CoroutineScope(Dispatchers.Main).launch {
                         Toast.makeText(context,"success fully download ${blobItem.blobName}",Toast.LENGTH_LONG).show()
                     }

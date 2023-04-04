@@ -80,8 +80,7 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             else{
-                val data=null
-//                    getAllUploadedFile()
+                val data=getAllUploadedFile()
                 val intent= Intent(this@MainActivity,MainActivity2::class.java)
                 val bundle = Bundle()
                 bundle.putParcelableArrayList("ArrayData", data)
@@ -409,7 +408,7 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-    /*fun getAllUploadedFile() :ArrayList<FileModel>{
+    fun getAllUploadedFile() :ArrayList<FileModel>{
         CoroutineScope(Dispatchers.IO).launch {
 
             try {
@@ -433,7 +432,7 @@ class MainActivity : AppCompatActivity() {
                         val blob = blobItem
                         val blobData=FileModel(blob.name,blob.properties.length.toInt(),blob.uri.toString())
                         blobArray.add(blobData)
-                        *//*blob.download(FileOutputStream(blob.name))*//*
+                        //blob.download(FileOutputStream(blob.name))
                     }
                 }
             } catch (e: java.lang.Exception) {
@@ -442,7 +441,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         return blobArray
-    }*/
+    }
     fun downloadF(getBlobName:String){
         CoroutineScope(Dispatchers.IO).launch {
             val account = CloudStorageAccount.parse(this@MainActivity.connectionString)
