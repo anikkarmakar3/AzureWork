@@ -10,9 +10,10 @@ import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.*
 
-class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerView.Adapter<MyViewHolder>() {
-    private var mainActivityObject= MainActivity()
-    private var mainActivityObject2= MainActivity2()
+class BlobAdapter(val items: List<FileModel>, val context: Context) :
+    RecyclerView.Adapter<MyViewHolder>() {
+    private var mainActivityObject = MainActivity()
+    private var mainActivityObject2 = MainActivity2()
     lateinit var progressBar: ProgressDialog
 
     val connectionString =
@@ -21,7 +22,7 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
 
     // Gets the number of animals in the list
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
-        val view=LayoutInflater.from(parent.context).inflate(R.layout.blob_item,parent,false)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.blob_item, parent, false)
         return MyViewHolder(view)
     }
 
@@ -41,16 +42,28 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
                 /*mainActivityObject2.downloadIntoMultipart(blobItem.blobName.toString(),blobItem.blobSize.toLong())*/
                 GlobalScope.launch {
                     /*withContext(Dispatchers.IO) { mainActivityObject2.downloadBlobFile(blobItem.blobUrl.toString(),blobItem.blobName.toString(),1000000) }*/
-                    async { mainActivityObject2.downloadFile(blobItem.blobName.toString(),blobItem.blobSize,1000*1000,context) }.await()
+                    async {
+                        mainActivityObject2.downloadFile(
+                            blobItem.blobName.toString(),
+                            blobItem.blobSize,
+                            1,
+                            context
+                        )
+                    }.await()
                     CoroutineScope(Dispatchers.Main).launch {
-                        Toast.makeText(context,"success fully download ${blobItem.blobName}",Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            context,
+                            "success fully download ${blobItem.blobName}",
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
 
                 }
 
-            }catch (e:Exception){
+            } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context,"download failed ${blobItem.blobName}",Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "download failed ${blobItem.blobName}", Toast.LENGTH_LONG)
+                    .show()
             }
 
         }
@@ -62,6 +75,6 @@ class BlobAdapter(val items : List<FileModel>, val context: Context) : RecyclerV
 }
 
 
-class MyViewHolder (view: View) : RecyclerView.ViewHolder(view) {
-    val blobItemView:TextView= view.findViewById<TextView>(R.id.blob_list_item)
+class MyViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    val blobItemView: TextView = view.findViewById<TextView>(R.id.blob_list_item)
 }

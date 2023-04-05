@@ -4,23 +4,25 @@ import android.content.Context
 import android.os.Bundle
 import android.os.Environment
 import android.util.Log
+import android.util.Range
 import android.view.View
 import android.widget.ProgressBar
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.util.toClosedRange
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.microsoft.azure.storage.CloudStorageAccount
-import com.microsoft.azure.storage.blob.CloudBlobContainer
 import com.microsoft.azure.storage.blob.CloudBlockBlob
-import com.microsoft.azure.storage.blob.SharedAccessBlobHeaders
-import com.microsoft.azure.storage.blob.SharedAccessBlobPermissions
-import com.microsoft.azure.storage.blob.SharedAccessBlobPolicy
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.io.OutputStream
 import java.io.RandomAccessFile
 import java.util.*
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
 
@@ -115,19 +117,19 @@ class MainActivity2 : AppCompatActivity() {
             val container = blobClient.getContainerReference("arc-file-container")
             val blob: CloudBlockBlob = container.getBlockBlobReference(getBlobName)
 
-            val totalSize = fileSize
-            var inputStream: InputStream = blob.openInputStream()
+            /*val totalSize = fileSize
             val numOfThreads = (totalSize / chunkSize) + 1   //+1
             val getChunkBlob = multiPart(
                 getBlobName,
                 numOfThreads,
                 chunkSize,
-                inputStream,
                 context,
                 totalSize,
                 blob
-            )
-            inputStream.close()
+            )*/
+
+            val ranges = calculateRange(fileSize.toLong(), chunkSize)
+            multiPart(ranges, getBlobName, context, blob)
             /*val isAllChunkDownload = getChunkBlob.filter {
                 it == true
             }.count()==0
@@ -144,6 +146,20 @@ class MainActivity2 : AppCompatActivity() {
         }
     }
 
+    private suspend fun multiPart(
+        ranges: ArrayList<ClosedRange<Long>>,
+        blobName: String,
+        context: Context,
+        blob: CloudBlockBlob
+    ): List<Boolean> {
+        val arrList = ArrayList<Deferred<Boolean>>()
+        for (i in ranges) {
+            val job = downloadChunkFile(i, blob, blobName, context)
+            arrList.add(job)
+        }
+        return arrList.awaitAll()
+    }
+
 
     /*fun stichFile(chunkSize:Int){
         val chunks = ByteArray(chunkSize)
@@ -157,86 +173,145 @@ class MainActivity2 : AppCompatActivity() {
         filesAbsolteDir = context.filesDir
     }
 
+    /*
+        suspend fun multiPart(
+            blobName: String,
+            noOfThreads: Int,
+            chunkSize: Int,
+            context: Context,
+            totalSize: Int,
+            blob: CloudBlockBlob
+        ): List<Boolean> {
 
-    suspend fun multiPart(
-        blobName: String,
-        noOfThreads: Int,
-        chunkSize: Int,
-        inputStream: InputStream,
-        context: Context,
-        totalSize: Int,
-        blob: CloudBlockBlob
-    ): List<Boolean> {
+            val arrJob = ArrayList<Deferred<Boolean>>()
+            for (i in 1..noOfThreads) {
+                val job = CoroutineScope(Dispatchers.Default).async {
+                    val inputStream: InputStream = blob.openInputStream()
+                    var outputStream: OutputStream? = null
+                    try {
+                        val startPos = (i - 1) * chunkSize
+                        val endPos = if (i == noOfThreads) totalSize else startPos + chunkSize - 1
 
-        val arrJob = ArrayList<Deferred<Boolean>>()
-        for (i in 1..noOfThreads) {
-            val job = CoroutineScope(Dispatchers.Default).async {
-                try {
-                    val startPos = 0 * chunkSize
-                    val endPos = if (i == noOfThreads) totalSize else startPos + chunkSize - 1
+                        Log.e("anik", "$i  >>>>>  $startPos and $endPos")
+                        val outPutFilPath =
+                            context.filesDir.absolutePath + blobName + File.separator + "chunk_$i.jpg"
+                        val outputFile = File(outPutFilPath)
 
-                    Log.e("anik", "$i  >>>>>  $startPos and $endPos")
-                    val outPutFilPath =
-                        context.filesDir.absolutePath + blobName + File.separator + "chunk_$i.temp"
-                    val outputFile = File(outPutFilPath)
+                        if (outputFile.parentFile?.exists() == false) {
+                            outputFile.parentFile?.mkdirs()
+                        }
+                        if (!outputFile.exists()) {
+                            outputFile.createNewFile()
+                        }
+                        outputStream = outputFile.outputStream()
 
-                    if (outputFile.parentFile?.exists() == false) {
-                        outputFile.parentFile?.mkdirs()
+                        val chunk = endPos - startPos + 1
+                        val buffer = ByteArray(chunk)
+
+    //                    var bytesRead: Int
+                        var count: Int
+                        var currentPosition = startPos
+
+                        while (inputStream.read(buffer, 0, chunk)
+                                .also { count = it } != -1 && currentPosition <= endPos
+                        ) {
+                            outputStream.write(buffer, 0, count)
+                            currentPosition += count
+                        }
+    //                    while (currentPosition <= endPos) {
+    //                        bytesRead = inputStream.read(buffer)
+    //                        if (bytesRead == -1) break
+    //                        outputStream.write(buffer, 0, bytesRead)
+    //                        currentPosition += bytesRead
+    //                    }
+                        writeToFile(startPos.toLong(), outputFile, outPutFilPath, blobName, context)
+                        true
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        false
+                    } finally {
+                        inputStream.close()
+                        outputStream?.close()
+
                     }
-                    if (!outputFile.exists()) {
-                        outputFile.createNewFile()
-                    }
-                    val outputStream = outputFile.outputStream()
-
-                    /*val data = ByteArray(1024)
-                    var total: Long = 0
-                    var count: Int
-                    while (inputStream.read(data).also { count = it } != -1) {
-                        total += count.toLong()
-
-                        outputStream.write(data, 0, count)
-                    }*/
-                    // Create a buffer to read data from the input stream.
-                    val buffer = ByteArray(endPos)
-
-                    // Use the input stream to read the data for the corresponding chunk
-                    // and write it to the corresponding output stream.
-                    var bytesRead: Int
-                    var currentPosition = startPos
-                    while (currentPosition <= endPos) {
-                        bytesRead = inputStream.read(buffer, 0, chunkSize)
-                        if (bytesRead == -1) break
-                        outputStream.write(buffer, 0, bytesRead)
-                        currentPosition += bytesRead
-                    }
-                    outputStream.close()
-                    writeToFile(startPos.toLong(), outputFile, outPutFilPath, blobName, context)
-                    true
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                    false
                 }
+                arrJob.add(job)
             }
-            arrJob.add(job)
+            return arrJob.awaitAll()
+        }*/
+    private suspend fun calculateRange(fileSize: Long, size: Int): ArrayList<ClosedRange<Long>> {
+        val chunkSize = size * 1000 * 1000
+        var ranges: ArrayList<ClosedRange<Long>> = ArrayList()
+        val numberOfChunks = fileSize / chunkSize
+        var tempSize: Long = chunkSize.toLong()
+        var lower = 0L
+// we need to add extra byte in last request itself
+        var numberOfChunksGenerated = 1
+
+        while (numberOfChunksGenerated < numberOfChunks) {
+            val range = Range(lower, tempSize)
+            ranges.add(range.toClosedRange())
+            lower = tempSize + 1
+            tempSize += chunkSize
+            numberOfChunksGenerated += 1
         }
-        return arrJob.awaitAll()
+
+        val lastClosedRange = Range(lower, fileSize)
+        ranges.add(lastClosedRange.toClosedRange())
+        return ranges
     }
 
-    /*fun getUrl(blobName: String): String  {
-        val storageConnectionString =
-            "DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net"
-        val account = CloudStorageAccount.parse(storageConnectionString)
-        val blobClient = account.createCloudBlobClient()
-        val container = blobClient.getContainerReference("arc-file-container")
-        val blockBlob: CloudBlockBlob = container.getBlockBlobReference(blobName)
-        val policy = SharedAccessBlobPolicy()
-        policy.sharedAccessExpiryTime= Date(System.currentTimeMillis()+(60*1000*60))
-        policy.permissions=EnumSet.of((SharedAccessBlobPermissions.READ))
-        val sharedAccessBlobHeaders= SharedAccessBlobHeaders()
-        sharedAccessBlobHeaders.contentDisposition="attachment;filename=\"$blobName\""
-        val sasToken=blockBlob.generateSharedAccessSignature(policy,sharedAccessBlobHeaders,null)
-        return blockBlob.uri.toString() + sasToken
-    }*/
+    private fun downloadChunkFile(
+        closedRange: ClosedRange<Long>,
+        blob: CloudBlockBlob,
+        blobName: String,
+        context: Context
+    ) = CoroutineScope(Dispatchers.IO).async {
+        var isSuccess = false
+        val chunkId = System.nanoTime()
+        val outPutFilPath =
+            context.filesDir.absolutePath + blobName + File.separator + "$chunkId.temp"
+        val outputFile = File(outPutFilPath)
+
+        if (outputFile.parentFile?.exists() == false) {
+            outputFile.parentFile?.mkdirs()
+        }
+        if (!outputFile.exists()) {
+            outputFile.createNewFile()
+        }
+
+        val chunkFileSize = closedRange.endInclusive - closedRange.start
+        val outputStream = outputFile.outputStream()
+        try {
+            blob.downloadRange(closedRange.start, chunkFileSize, outputStream)
+            isSuccess = true
+        } catch (exception: Exception) {
+            isSuccess = false
+            exception.printStackTrace()
+        } finally {
+            outputStream.close()
+        }
+
+        writeToFile(closedRange.start, outputFile, outPutFilPath, blobName, context)
+
+        isSuccess
+    }
+
+/*fun getUrl(blobName: String): String  {
+    val storageConnectionString =
+        "DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net"
+    val account = CloudStorageAccount.parse(storageConnectionString)
+    val blobClient = account.createCloudBlobClient()
+    val container = blobClient.getContainerReference("arc-file-container")
+    val blockBlob: CloudBlockBlob = container.getBlockBlobReference(blobName)
+    val policy = SharedAccessBlobPolicy()
+    policy.sharedAccessExpiryTime= Date(System.currentTimeMillis()+(60*1000*60))
+    policy.permissions=EnumSet.of((SharedAccessBlobPermissions.READ))
+    val sharedAccessBlobHeaders= SharedAccessBlobHeaders()
+    sharedAccessBlobHeaders.contentDisposition="attachment;filename=\"$blobName\""
+    val sasToken=blockBlob.generateSharedAccessSignature(policy,sharedAccessBlobHeaders,null)
+    return blockBlob.uri.toString() + sasToken
+}*/
 
     private suspend fun writeToFile(
         startPos: Long,
@@ -263,7 +338,7 @@ class MainActivity2 : AppCompatActivity() {
 
     private fun configureTemporaryFilePath(blobName: String, context: Context): String {
         /*val fileNameWithoutExtension = filePath.substring(0, filePath.lastIndexOf("."))*/
-        return context.filesDir.absolutePath + blobName + File.separator + "$blobName.temp"
+        return context.filesDir.absolutePath + blobName + File.separator + "$blobName"
     }
 
     private fun createTemporaryFile(tempFilePath: String, context: Context) {
@@ -281,7 +356,7 @@ class MainActivity2 : AppCompatActivity() {
             Environment.getExternalStorageDirectory().getAbsolutePath() + "/Download"
         val sourcePath = configureTemporaryFilePath(blobName, context)
         if (File(sourcePath).exists()) {
-            File(sourcePath).copyTo(File(destinationPath,blobName), true)
+            File(sourcePath).copyTo(File(destinationPath, blobName), true)
             File(sourcePath).delete()
         }
     }
