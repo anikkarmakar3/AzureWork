@@ -46,6 +46,7 @@ class MainActivity : AppCompatActivity() {
     var arraylist = ArrayList<String>()
     val blobArray = ArrayList<FileModel>()
     lateinit var path: File
+    var data=kotlin.collections.ArrayList<FileModel>()
     var displayName: String? = null
     val MY_WRITE_EXTERNAL_REQUEST = 300
     val connectionString =
@@ -59,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(view)
 
         binding.fileName.visibility = View.GONE
-
+        data=getAllUploadedFile()
 
         /*binding.pic.setOnClickListener {
             imageChooser()
@@ -80,7 +81,6 @@ class MainActivity : AppCompatActivity() {
                 )
             }
             else{
-                val data=getAllUploadedFile()
                 val intent= Intent(this@MainActivity,MainActivity2::class.java)
                 val bundle = Bundle()
                 bundle.putParcelableArrayList("ArrayData", data)
@@ -119,8 +119,10 @@ class MainActivity : AppCompatActivity() {
                         grantResults[0] == PackageManager.PERMISSION_GRANTED)
             ) {
                 val intent= Intent(this@MainActivity,MainActivity2::class.java)
+                val bundle = Bundle()
+                bundle.putParcelableArrayList("ArrayData", data)
+                intent.putExtras(bundle)
                 startActivity(intent)
-                /*downloadF()*/
             }
         }
     }
@@ -235,7 +237,7 @@ class MainActivity : AppCompatActivity() {
                             arraylist.addAll(listOf(displayName.toString()))
                             binding.fileName.visibility = View.VISIBLE
                             binding.fileName.text = displayName
-                           /*uploadFile(inputStream, displayName.toString())*/
+                            /*uploadFile(inputStream, displayName.toString())*/
                             CoroutineScope(Dispatchers.IO).launch {
                                 async { uploadFileIntoMultipart(inputStream, displayName.toString()) }.await()
                                 CoroutineScope(Dispatchers.Main).launch {
@@ -273,89 +275,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
-    /*fun uploadFileIntoChunk(){
 
-        *//*val container = CloudBlobContainer(connectionString, "arc-file-container")*//*
-        val account = CloudStorageAccount.parse(this@MainActivity.connectionString)
-        val blobClient: CloudBlobClient = account.createCloudBlobClient()
-        val container: CloudBlobContainer = blobClient.getContainerReference("arc-file-container")
-// Define the file to be uploaded
-        val file = File("/path/to/file")
-
-// Define the chunk size for each upload
-        val chunkSize = 1024
-
-// Define an Executor to manage the upload threads
-        val executor = Executors.newFixedThreadPool(4)
-
-        // Define a function to upload a single chunk
-        fun uploadChunk(blockBlob: CloudBlockBlob, fileStream: FileInputStream, offset: Long, length: Int) {
-            val buffer = ByteArray(length)
-            fileStream.read(buffer, offset.toInt(), length)
-            blockBlob.uploadFromByteArray(buffer, offset.toInt(), length)
-        }
-
-        // Define a function to upload the file in chunks
-        fun uploadFileInChunks() {
-            val blockBlob = container.getBlockBlobReference(file.name)
-            val fileStream = FileInputStream(file)
-            val fileSize = file.length()
-            var offset = 0L
-            while (offset < fileSize) {
-                val length = Math.min(chunkSize, fileSize - offset).toInt()
-                executor.execute {
-                    uploadChunk(blockBlob, fileStream, offset, length)
-                }
-                offset += chunkSize.toLong()
-            }
-            executor.shutdown()
-        }
-
-// Call the uploadFileInChunks function to start the upload
-        uploadFileInChunks()
-    }
-*/
-
-    /*fun uploadMultipartFile(takeFile: InputStream?, blobName: String,length:Long) {
-        CoroutineScope(Dispatchers.IO).launch {
-            try {
-                val blobServiceClient =
-                    BlobServiceClientBuilder().connectionString(connectionString).buildClient()
-                val containerName = "arc-file-container"
-                *//*blobServiceClient.createBlobContainer(containerName)*//*
-                *//*blobServiceClient.getBlobContainerClient("arc-file-container")*//*
-                val fileName = blobName
-                val blockBlobClient: BlockBlobClient =
-                    blobServiceClient.getBlobContainerClient(containerName)
-                        .getBlobClient(fileName).blockBlobClient
-
-                    blockBlobClient.upload(takeFile,0,true)
-                *//*blockBlobClient.uploadWithResponse(
-                    takeFile,
-                    1,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null,
-                    null
-                )
-*//*
-                *//*      blockBlobClient.uploadFromStream(
-                          takeFile,
-                          your_file_size,
-                          null,
-                          null,
-                          null,
-                          null
-                      )*//*
-
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-    }*/
 
     fun uploadImageFile(imageFile: ByteArray, imageBlobName: String) {
         CoroutineScope(Dispatchers.IO).launch {
@@ -460,7 +380,7 @@ class MainActivity : AppCompatActivity() {
             val blobClient = storageAccount.createCloudBlobClient()
             val container = blobClient.getContainerReference("arc-file-container")
             val blob:CloudBlockBlob= container.getBlockBlobReference(blobName)
-            val blockSize = 4 * 1024 * 1024 // 4 MB
+            val blockSize =  1024 * 1024 // 1 MB
             /*val file = File("<your_file_path>")*/
 
             var blockIds = mutableListOf<String>()
