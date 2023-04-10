@@ -15,9 +15,15 @@ interface ChunkDao {
     fun delete(chunkData: DatabaseChunkModel)
 
     @Query("delete from ChunkDB")
-    fun deleteAllNotes()
+    fun deleteAllChunks()
+    @Query("DELETE from ChunkDB where blobName = :blobName")
+    fun deleteListData(blobName:String)
 
-    /*@Query("select * from ChunkDB order by priority desc")
-    fun getAllNotes(): LiveData<List<Note>>*/
+    @Query("SELECT * from ChunkDB where blobName = :blobName")
+    fun getListData(blobName:String): List<DatabaseChunkModel>?
 
+    @Query("SELECT * from ChunkDB where chunkId = :chunkId limit 1")
+    fun getData(chunkId: Long): DatabaseChunkModel?
+    @Query("SELECT * from ChunkDB where downloadStatus= :failure")
+    fun getFalireList(failure:String) :List<DatabaseChunkModel>
 }

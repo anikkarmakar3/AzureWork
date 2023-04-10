@@ -10,7 +10,7 @@ data class DatabaseChunkModel(
     var chunkId: Long, //Primary key
     var filePath: String,
     var downloadStatus: String,
-    var chunkName: String,
+    var blobName: String,
     var lowerRange: Long,
     var upperRange: Long,
     var size: Long

@@ -16,8 +16,8 @@ import com.microsoft.azure.storage.blob.CloudBlockBlob
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.RandomAccessFile
-import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 
 class MainActivity2 : AppCompatActivity() {
@@ -68,13 +68,34 @@ class MainActivity2 : AppCompatActivity() {
 
 
             val ranges = calculateRange(fileSize.toLong(), chunkSize)
-            val chunks = multiPart(ranges, getBlobName, context, blob)
-            val isDownloadComplete = chunks.filter {
+
+            val chunksMultipart = multiPart(ranges, getBlobName, context, blob)
+
+            val isDownloadComplete = chunksMultipart.filter {
                 it == false
             }.count()==0
 
+
+
+            /*val jobDownloadFailed = chunks.filter {
+                it.value.downloadStatus != DownloadStatus.SUCCESS.toString()
+            }.count()==0*/
+
             if (isDownloadComplete) {
+                deleteAllChunksFromDB(getBlobName,context)
                 copyTemporaryFileToDestinationFile(getBlobName, context)
+            }
+            else{
+                var failureChunk:List<DatabaseChunkModel> =ArrayList<DatabaseChunkModel>()
+                failureChunk=fetchAllFailureChunks("FAILURE",context)
+                chunks = failureChunk?.let {
+                    it.associateBy {
+                        it.chunkId
+                    } as HashMap<Long, DatabaseChunkModel>
+                }?: kotlin.run {
+                    HashMap()
+                }
+
             }
 
         } catch (e: Exception) {
@@ -91,7 +112,6 @@ class MainActivity2 : AppCompatActivity() {
         val arrList = ArrayList<Deferred<Boolean>>()
         for (i in ranges) {
             val job = downloadChunkFile(i, blob, blobName, context)
-
             arrList.add(job)
         }
         return arrList.awaitAll()
@@ -141,21 +161,11 @@ class MainActivity2 : AppCompatActivity() {
 
         val chunkFileSize = closedRange.endInclusive - closedRange.start
         val outputStream = outputFile.outputStream()
-        try {
-            blob.downloadRange(closedRange.start, chunkFileSize, outputStream)
-            isSuccess = true
-
-        } catch (exception: Exception) {
-            isSuccess = false
-            exception.printStackTrace()
-        } finally {
-            outputStream.close()
-        }
         val chunkModel = DatabaseChunkModel(
             chunkId = chunkId,
             filePath = outPutFilPath,
             downloadStatus = DownloadStatus.DOWNLOAD_PENDING.toString(),
-            chunkName = blobName,
+            blobName = blobName,
             lowerRange = closedRange.start,
             upperRange = closedRange.endInclusive,
             size = chunkFileSize
@@ -163,9 +173,26 @@ class MainActivity2 : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
             ChunksController(context)?.insertData(chunkModel)
         }
+        try {
+            blob.downloadRange(closedRange.start, chunkFileSize, outputStream)
+            isSuccess = true
+
+        } catch (exception: Exception) {
+            isSuccess = false
+            update(chunkId,DownloadStatus.FAILURE.toString(),context)
+            exception.printStackTrace()
+        } finally {
+            outputStream.close()
+        }
+
         chunks[chunkId] = chunkModel
         writeToFile(closedRange.start, outputFile, outPutFilPath, blobName, context)
-        update(chunkId, DownloadStatus.SUCCESS.toString(),context)
+        if(isSuccess){
+            update(chunkId, DownloadStatus.SUCCESS.toString(),context)
+        }
+        else{
+            update(chunkId, DownloadStatus.FAILURE.toString(),context)
+        }
         isSuccess
     }
 
@@ -176,6 +203,27 @@ class MainActivity2 : AppCompatActivity() {
         }
     }
 
+    private suspend fun fetchAllChunks(blobName: String){
+        val listOfChunks=chunksController?.getListData(blobName)
+        chunks = listOfChunks?.let {
+            it.map {
+                it.chunkId
+            } as HashMap<Long, DatabaseChunkModel>
+        }?: kotlin.run {
+            HashMap()
+        }
+    }
+
+    private suspend fun fetchAllFailureChunks(faliure: String,context: Context): List<DatabaseChunkModel> {
+        val listOfFaliureChunks=ChunksController(context).getAllFaliureChunkData(faliure)
+        return listOfFaliureChunks
+    }
+
+    private suspend fun deleteAllChunksFromDB(blobName: String, context: Context) {
+        chunks.clear()
+        ChunksController(context)?.deleteListData(blobName)
+
+    }
 
 
     private suspend fun writeToFile(

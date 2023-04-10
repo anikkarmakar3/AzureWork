@@ -16,4 +16,21 @@ class ChunksController(val context: Context) {
         context?.let { Chunkdatabase.getDatabase(context).chunkDao().update(chunkDatabaseChunkModel) }
     }
 
+    suspend fun deleteListData(blobName:String) {
+        context?.let {Chunkdatabase.getDatabase(context).chunkDao().deleteListData(blobName) }
+    }
+
+    suspend fun getListData(blobName: String): List<DatabaseChunkModel> {
+
+        return Chunkdatabase.getDatabase(context).chunkDao().getListData(blobName)!!
+    }
+
+    suspend fun getChunkData(chunkId:Long){
+        context?.let {Chunkdatabase.getDatabase(context).chunkDao().getData(chunkId) }
+    }
+
+    suspend fun getAllFaliureChunkData(failure:String):List<DatabaseChunkModel>{
+        return Chunkdatabase.getDatabase(context).chunkDao().getFalireList(failure)
+    }
+
 }
