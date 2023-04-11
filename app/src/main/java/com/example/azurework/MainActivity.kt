@@ -63,7 +63,7 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(LayoutInflater.from(this))
         val view = binding.root
         setContentView(view)
-
+        Chunkdatabase.getDatabase(applicationContext)
         binding.fileName.visibility = View.GONE
         data=getAllUploadedFile()
 
@@ -113,6 +113,10 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /*override fun onResume() {
+        super.onResume()
+        data=getAllUploadedFile()
+    }*/
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -128,6 +132,8 @@ class MainActivity : AppCompatActivity() {
                 bundle.putParcelableArrayList("ArrayData", data)
                 intent.putExtras(bundle)
                 startActivity(intent)
+            }else{
+
             }
         }
     }

@@ -7,6 +7,7 @@ import android.util.Log
 import android.util.Range
 import android.view.View
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.util.toClosedRange
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,6 +32,7 @@ class MainActivity2 : AppCompatActivity() {
     lateinit var filesDirs: File
     private var chunksController:ChunksController?=null
     private var chunks: HashMap<Long, DatabaseChunkModel> = HashMap()
+    private var myChunkDatabase: Chunkdatabase? = null
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,6 +68,21 @@ class MainActivity2 : AppCompatActivity() {
             val container = blobClient.getContainerReference("arc-file-container")
             val blob: CloudBlockBlob = container.getBlockBlobReference(getBlobName)
 
+            val existData=fetchAllChunks(getBlobName,context)
+
+            if (existData!=null){
+                var failureChunk:List<DatabaseChunkModel> =ArrayList<DatabaseChunkModel>()
+                failureChunk=fetchAllFailureChunks("FAILURE",context)
+                val faliureRange=calculateFaliureRange(failureChunk)
+                val chunksMultipart = multiPart(faliureRange, getBlobName, context, blob)
+                val isResumeDownloadComplete = chunksMultipart.filter {
+                    it == false
+                }.count()==0
+
+                isResumeDownloadComplete.let {
+                    deleteAllChunksFromDB(getBlobName,context)
+                }
+            }
 
             val ranges = calculateRange(fileSize.toLong(), chunkSize)
 
@@ -88,19 +105,41 @@ class MainActivity2 : AppCompatActivity() {
             else{
                 var failureChunk:List<DatabaseChunkModel> =ArrayList<DatabaseChunkModel>()
                 failureChunk=fetchAllFailureChunks("FAILURE",context)
-                chunks = failureChunk?.let {
+                /*chunks = failureChunk?.let {
                     it.associateBy {
                         it.chunkId
                     } as HashMap<Long, DatabaseChunkModel>
                 }?: kotlin.run {
                     HashMap()
-                }
+                }*/
+                val faliureRange=calculateFaliureRange(failureChunk)
+                val chunksMultipart = multiPart(faliureRange, getBlobName, context, blob)
+                val isResumeDownloadComplete = chunksMultipart.filter {
+                    it == false
+                }.count()==0
 
+                isResumeDownloadComplete.let {
+                    deleteAllChunksFromDB(getBlobName,context)
+                }
             }
 
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun onPause() {
+        super.onPause()
+
+    }
+    private fun calculateFaliureRange(failureChunk: List<DatabaseChunkModel>): ArrayList<ClosedRange<Long>> {
+        var ranges: ArrayList<ClosedRange<Long>> = ArrayList()
+        failureChunk.forEach {
+            val range = Range(it.lowerRange, it.upperRange)
+            val lastClosedRange=range.toClosedRange()
+            ranges.add(lastClosedRange)
+        }
+        return ranges
     }
 
     private suspend fun multiPart(
@@ -203,15 +242,16 @@ class MainActivity2 : AppCompatActivity() {
         }
     }
 
-    private suspend fun fetchAllChunks(blobName: String){
-        val listOfChunks=chunksController?.getListData(blobName)
+    private suspend fun fetchAllChunks(blobName: String,context: Context):List<DatabaseChunkModel>?{
+        val listOfChunks=ChunksController(context)?.getListData(blobName)
         chunks = listOfChunks?.let {
-            it.map {
+            it.associateBy {
                 it.chunkId
             } as HashMap<Long, DatabaseChunkModel>
         }?: kotlin.run {
             HashMap()
         }
+        return listOfChunks
     }
 
     private suspend fun fetchAllFailureChunks(faliure: String,context: Context): List<DatabaseChunkModel> {

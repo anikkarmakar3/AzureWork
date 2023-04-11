@@ -5,6 +5,8 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 @Database(entities = [DatabaseChunkModel::class], version = 1)
 abstract class Chunkdatabase : RoomDatabase(){
@@ -32,6 +34,32 @@ abstract class Chunkdatabase : RoomDatabase(){
                 instance
             }
         }
+
+            /*val roomCallback = object : Callback() {
+                override fun onCreate(db: SupportSQLiteDatabase) {
+                    super.onCreate(db)
+                    populateDatabase(INSTANCE!!)
+                }
+            }
+
+            fun populateDatabase(db: Chunkdatabase) {
+                val noteDao = db.chunkDao()
+                GlobalScope.launch {
+                    val userDao = Chunkdatabase.getDatabase()
+
+                    // Insert users
+                    userDao.insert(User(1, "John", 30))
+                    userDao.insert(User(2, "Alice", 25))
+                    userDao.insert(User(3, "Bob", 40))
+                }
+
+            }*/
+
+
+       /* }*/
     }
+
+
+
 
 }
