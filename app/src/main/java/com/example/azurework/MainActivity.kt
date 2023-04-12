@@ -186,6 +186,9 @@ class MainActivity : AppCompatActivity() {
                                 val uriString = uri.toString()
                                 val myFile = File(uriString)
                                 path = myFile
+                                val contentResolver = applicationContext.contentResolver
+                                val uri2 = Uri.parse(uriString)
+                                var inputStream = uriToInputStream(contentResolver, uri2)
 
 
                                 if (uriString.startsWith("content://")) {
@@ -201,7 +204,7 @@ class MainActivity : AppCompatActivity() {
                                                     )
                                                 )
                                             /*arraylist.addAll(displayName)*/
-                                            /*binding.fileName.text = displayName*/
+                                            binding.fileName.text = displayName
                                         }
                                     } finally {
                                         cursor?.close()
@@ -210,6 +213,16 @@ class MainActivity : AppCompatActivity() {
                                     displayName = myFile.getName()
                                     binding.fileName.visibility = View.VISIBLE
                                     binding.fileName.text = displayName
+                                }
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    async {
+                                        /*uploadFileIntoMultipart(inputStream, displayName.toString()) */
+                                        /*uploadMultipart(inputStream,displayName.toString(),length)*/
+                                        uploadToAzure(displayName.toString(),inputStream!!)
+                                    }.await()
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        Log.d("status","Succesfully uploaded")
+                                    }
                                 }
                             }
                             binding.fileName.visibility = View.VISIBLE
