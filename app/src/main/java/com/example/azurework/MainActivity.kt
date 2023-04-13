@@ -2,6 +2,7 @@ package com.example.azurework
 
 
 import android.app.Activity
+import android.app.ProgressDialog
 import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
@@ -16,15 +17,13 @@ import android.provider.OpenableColumns
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.azure.storage.blob.BlobClient
-import com.azure.storage.blob.BlobContainerClient
 import com.azure.storage.blob.BlobServiceClient
 import com.azure.storage.blob.BlobServiceClientBuilder
-import com.azure.storage.blob.specialized.BlockBlobClient
 import com.example.azurework.databinding.ActivityMainBinding
 import com.microsoft.azure.storage.CloudStorageAccount
 import com.microsoft.azure.storage.blob.BlockEntry
@@ -38,7 +37,6 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import java.io.*
 import java.lang.Integer.min
-import java.util.concurrent.Executors
 import java.util.*
 import kotlin.collections.ArrayList
 
@@ -50,13 +48,14 @@ class MainActivity : AppCompatActivity() {
     var arraylist = ArrayList<String>()
     val blobArray = ArrayList<FileModel>()
     lateinit var path: File
-    var data=kotlin.collections.ArrayList<FileModel>()
+    var blobListData=kotlin.collections.ArrayList<FileModel>()
     var displayName: String? = null
     var sizeIndex:Int?= null
     val MY_WRITE_EXTERNAL_REQUEST = 300
     val connectionString =
         "DefaultEndpointsProtocol=https;AccountName=anikkarmakar;AccountKey=dN+fVtZihBvdf0QSSUVl68gHjqcVwsHFTsIfelmsEoeatvx8e2FwTwMEk9WLzzhL7seVCyS2zDGU+AStDBf46A==;EndpointSuffix=core.windows.net"
-
+    lateinit var progressBar:ProgressBar
+    lateinit var progressDialog:ProgressDialog
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -64,9 +63,9 @@ class MainActivity : AppCompatActivity() {
         val view = binding.root
         setContentView(view)
         Chunkdatabase.getDatabase(applicationContext)
+        progressDialog = ProgressDialog(this@MainActivity)
         binding.fileName.visibility = View.GONE
-        data=getAllUploadedFile()
-
+        blobListData=getAllUploadedFile()
         /*binding.pic.setOnClickListener {
             imageChooser()
         }*/
@@ -88,7 +87,7 @@ class MainActivity : AppCompatActivity() {
             else{
                 val intent= Intent(this@MainActivity,MainActivity2::class.java)
                 val bundle = Bundle()
-                bundle.putParcelableArrayList("ArrayData", data)
+                bundle.putParcelableArrayList("ArrayData", blobListData)
                 intent.putExtras(bundle)
                 startActivity(intent)
 
@@ -129,7 +128,7 @@ class MainActivity : AppCompatActivity() {
             ) {
                 val intent= Intent(this@MainActivity,MainActivity2::class.java)
                 val bundle = Bundle()
-                bundle.putParcelableArrayList("ArrayData", data)
+                bundle.putParcelableArrayList("ArrayData", blobListData)
                 intent.putExtras(bundle)
                 startActivity(intent)
             }else{
@@ -203,7 +202,7 @@ class MainActivity : AppCompatActivity() {
                                                         OpenableColumns.DISPLAY_NAME
                                                     )
                                                 )
-                                            /*arraylist.addAll(displayName)*/
+                                            arraylist.add(displayName.toString())
                                             binding.fileName.text = displayName
                                         }
                                     } finally {
@@ -214,14 +213,22 @@ class MainActivity : AppCompatActivity() {
                                     binding.fileName.visibility = View.VISIBLE
                                     binding.fileName.text = displayName
                                 }
+                                progressDialog.setMessage("Please wait....");
+                                progressDialog.setTitle("Uploading File");
+                                progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                                progressDialog.show();
                                 CoroutineScope(Dispatchers.IO).launch {
                                     async {
                                         /*uploadFileIntoMultipart(inputStream, displayName.toString()) */
                                         /*uploadMultipart(inputStream,displayName.toString(),length)*/
                                         uploadToAzure(displayName.toString(),inputStream!!)
                                     }.await()
+                                    blobListData.clear()
+                                    getAllUploadedFile()
                                     CoroutineScope(Dispatchers.Main).launch {
                                         Log.d("status","Succesfully uploaded")
+                                        progressDialog.dismiss()
+                                        Toast.makeText(applicationContext,"Successfully Upload",Toast.LENGTH_LONG).show()
                                     }
                                 }
                             }
@@ -263,14 +270,22 @@ class MainActivity : AppCompatActivity() {
                             binding.fileName.visibility = View.VISIBLE
                             binding.fileName.text = displayName
                             /*uploadFile(inputStream, displayName.toString())*/
+                            progressDialog.setMessage("Please wait....");
+                            progressDialog.setTitle("Uploading File");
+                            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+                            progressDialog.show();
                             CoroutineScope(Dispatchers.IO).launch {
                                 async {
                                     /*uploadFileIntoMultipart(inputStream, displayName.toString()) */
                                     /*uploadMultipart(inputStream,displayName.toString(),length)*/
                                     uploadToAzure(displayName.toString(),inputStream!!)
                                 }.await()
+                                blobListData.clear()
+                                getAllUploadedFile()
                                 CoroutineScope(Dispatchers.Main).launch {
                                     Log.d("status","Succesfully uploaded")
+                                    progressDialog.dismiss()
+                                    Toast.makeText(applicationContext,"Successfully Upload",Toast.LENGTH_LONG).show()
                                 }
                             }
 
